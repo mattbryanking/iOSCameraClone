@@ -18,22 +18,37 @@
                         <subviews>
                             <view contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" translatesAutoresizingMaskIntoConstraints="NO" id="2Ah-jv-asZ">
                                 <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                                <gestureRecognizers/>
+                                <connections>
+                                    <outletCollection property="gestureRecognizers" destination="jME-LI-lba" appends="YES" id="6th-hb-kPh"/>
+                                    <outletCollection property="gestureRecognizers" destination="jME-LI-lba" appends="YES" id="lef-MK-fex"/>
+                                    <outletCollection property="gestureRecognizers" destination="jME-LI-lba" appends="YES" id="w0w-HF-QZN"/>
+                                </connections>
                             </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="g0P-h1-zzi"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <gestureRecognizers/>
                         <constraints>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="8vq-yh-ny0"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="trailing" secondItem="g0P-h1-zzi" secondAttribute="trailing" id="ESQ-WI-KPd"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="leading" secondItem="g0P-h1-zzi" secondAttribute="leading" id="w1U-8K-PF2"/>
                             <constraint firstAttribute="bottom" secondItem="2Ah-jv-asZ" secondAttribute="bottom" id="xJL-9Z-fqd"/>
                         </constraints>
+                        <connections>
+                            <outletCollection property="gestureRecognizers" destination="jME-LI-lba" appends="YES" id="6ny-s7-ZXR"/>
+                        </connections>
                     </view>
                     <connections>
                         <outlet property="cameraView" destination="2Ah-jv-asZ" id="qAh-6L-LF2"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+                <pinchGestureRecognizer id="jME-LI-lba">
+                    <connections>
+                        <action selector="zoomPinchRecognizer:" destination="BYZ-38-t0r" id="oE0-XR-ImO"/>
+                    </connections>
+                </pinchGestureRecognizer>
             </objects>
             <point key="canvasLocation" x="132" y="-34"/>
         </scene>
