@@ -14,6 +14,7 @@ class ViewController: UIViewController {
     let output = AVCapturePhotoOutput()
     var previewLayer = AVCaptureVideoPreviewLayer()
   
+    @IBOutlet weak var shutterButton: UIButton!
     @IBOutlet weak var cameraView: UIView!
     
     struct CameraConfig {
@@ -35,6 +36,28 @@ class ViewController: UIViewController {
        
         session = AVCaptureSession()
         setupCamera()
+        
+        // programatically round button and add border
+        shutterButton.layer.cornerRadius = shutterButton.frame.width / 2
+        shutterButton.layer.masksToBounds = true
+        shutterButton.layer.borderWidth = 2.2
+        shutterButton.layer.borderColor = UIColor.black.cgColor
+        shutterButton.layer.zPosition = 2
+        
+        // add ring behind button
+        let circleLayer = CAShapeLayer()
+        let circleDiameter: CGFloat = shutterButton.frame.width * 1.1
+        let circlePath = UIBezierPath(ovalIn: CGRect(x: shutterButton.center.x - circleDiameter / 2, y: shutterButton.center.y - circleDiameter / 2, width: circleDiameter, height: circleDiameter))
+
+        circleLayer.path = circlePath.cgPath
+        circleLayer.fillColor = UIColor.white.cgColor
+        circleLayer.zPosition = 1
+
+        if let shutterButtonIndex = cameraView.layer.sublayers?.firstIndex(of: shutterButton.layer) {
+            cameraView.layer.insertSublayer(circleLayer, at: UInt32(shutterButtonIndex))
+        } else {
+            cameraView.layer.addSublayer(circleLayer)
+        }
         
         print("loaded!")
     }
