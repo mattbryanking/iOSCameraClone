@@ -8,16 +8,31 @@ class ViewController: UIViewController {
     var videoOutput = AVCaptureMovieFileOutput()
     var previewLayer = AVCaptureVideoPreviewLayer()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
-  
+    
     @IBOutlet weak var rotateCameraButton: UIButton!
     @IBOutlet weak var shutterButton: UIButton!
     @IBOutlet weak var cameraView: UIView!
     
     struct CameraConfig {
-        enum CameraMode {
+        enum CameraMode: CaseIterable, CustomStringConvertible {
             case photo, video, portrait, nightMode, burst
+            
+            var description: String {
+                switch self {
+                case .photo:
+                    return "Photo"
+                case .video:
+                    return "Video"
+                case .portrait:
+                    return "Portrait"
+                case .nightMode:
+                    return "Night Mode"
+                case .burst:
+                    return "Burst"
+                }
+            }
         }
-
+        
         var cameraMode: CameraMode
         var cameraPosition: AVCaptureDevice.Position
         var frameRate: Int
@@ -27,10 +42,10 @@ class ViewController: UIViewController {
     }
     
     var cameraConfig = CameraConfig(cameraMode: .video, cameraPosition: .back, frameRate: 30, resolution: .high, isHDR: false)
-    
+        
     override func viewDidLoad() {
         super.viewDidLoad()
-       
+        
         session = AVCaptureSession()
         
         setupCamera()
@@ -49,13 +64,13 @@ class ViewController: UIViewController {
         let circleDiameter: CGFloat = shutterButton.frame.width * 1.125
         let buttonCenterInCameraView = cameraView.convert(shutterButton.center, from: shutterButton.superview)
         let circlePath = UIBezierPath(ovalIn: CGRect(x: buttonCenterInCameraView.x - circleDiameter / 2, y: buttonCenterInCameraView.y - circleDiameter / 2, width: circleDiameter, height: circleDiameter))
-
+        
         circleLayer.path = circlePath.cgPath
         circleLayer.fillColor = UIColor.clear.cgColor
         circleLayer.strokeColor = UIColor.white.cgColor
         circleLayer.lineWidth = 4
         circleLayer.zPosition = 100
-
+        
         if let shutterButtonIndex = cameraView.layer.sublayers?.firstIndex(of: shutterButton.layer) {
             cameraView.layer.insertSublayer(circleLayer, at: UInt32(shutterButtonIndex))
         } else {
@@ -130,22 +145,22 @@ class ViewController: UIViewController {
     
     func switchCamera() {
         guard let session = session else { return }
-
+        
         session.beginConfiguration()
         defer { session.commitConfiguration() }
-
+        
         guard let currentInput = session.inputs.first as? AVCaptureDeviceInput else { return }
-
+        
         cameraConfig.cameraPosition = (cameraConfig.cameraPosition == .front) ? .back : .front
-
+        
         guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
             print("Could not find the camera for position: \(cameraConfig.cameraPosition)")
             return
         }
-
+        
         do {
             let newInput = try AVCaptureDeviceInput(device: newCamera)
-
+            
             session.removeInput(currentInput)
             if session.canAddInput(newInput) {
                 session.addInput(newInput)
@@ -158,19 +173,19 @@ class ViewController: UIViewController {
             return
         }
     }
-
+    
     
     // master function for saving photo input
     func takePhoto() {
         guard let session = session, session.isRunning else {
-               print("could not access session")
-               return
+            print("could not access session")
+            return
         }
-
+        
         let photoSettings = AVCapturePhotoSettings()
-
+        
         // handle hdr
-
+        
         // handle various camera modes
         switch cameraConfig.cameraMode {
         case .photo:
@@ -184,7 +199,7 @@ class ViewController: UIViewController {
         default:
             break
         }
-
+        
         // apply zoom
         if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) {
             do {
@@ -195,7 +210,7 @@ class ViewController: UIViewController {
                 print("error setting zoom: \(error)")
             }
         }
-
+        
         output.capturePhoto(with: photoSettings, delegate: self)
     }
     
@@ -260,17 +275,17 @@ class ViewController: UIViewController {
 }
 
 extension ViewController: AVCapturePhotoCaptureDelegate, AVCaptureFileOutputRecordingDelegate {
-
+    
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         guard let imageData = photo.fileDataRepresentation(),
               let image = UIImage(data: imageData) else {
             print("could not create image data")
             return
         }
-
+        
         UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
     }
-
+    
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         if let error = error {
             print("could not save photo: \(error.localizedDescription)")
@@ -278,11 +293,11 @@ extension ViewController: AVCapturePhotoCaptureDelegate, AVCaptureFileOutputReco
             print("photo saved successfully")
         }
     }
-
+    
     func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
         print("Video recording started")
     }
-
+    
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         if let error = error {
             print("Video recording error: \(error.localizedDescription)")
@@ -291,7 +306,7 @@ extension ViewController: AVCapturePhotoCaptureDelegate, AVCaptureFileOutputReco
             UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(video(_:didFinishSavingWithError:contextInfo:)), nil)
         }
     }
-
+    
     @objc func video(_ videoPath: String, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         if let error = error {
             print("Error saving video: \(error.localizedDescription)")
