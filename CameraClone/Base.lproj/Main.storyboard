@@ -26,29 +26,86 @@
                                     <outletCollection property="gestureRecognizers" destination="jME-LI-lba" appends="YES" id="w0w-HF-QZN"/>
                                 </connections>
                             </view>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZOD-VX-f8n">
-                                <rect key="frame" x="182.66666666666666" y="783" width="65" height="65"/>
-                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Unj-oI-FvN" userLabel="Bottom Container">
+                                <rect key="frame" x="0.0" y="708" width="430" height="224"/>
+                                <subviews>
+                                    <view alpha="0.80000000000000004" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="pvL-64-kB7" userLabel="Bottom Black View">
+                                        <rect key="frame" x="0.0" y="0.0" width="430" height="224"/>
+                                        <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </view>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="8Fj-9S-oRZ" userLabel="Rotate Camera Button">
+                                        <rect key="frame" x="335" y="89.666666666666629" width="45" height="45"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="45" id="2Jq-Hj-cJr"/>
+                                            <constraint firstAttribute="width" constant="45" id="uRs-1v-e3v"/>
+                                        </constraints>
+                                        <state key="normal" title="Button"/>
+                                        <buttonConfiguration key="configuration" style="filled" image="camera.rotate.fill" catalog="system">
+                                            <color key="baseForegroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                            <color key="baseBackgroundColor" red="0.11718079816434801" green="0.11718079816434801" blue="0.11718079816434801" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </buttonConfiguration>
+                                        <connections>
+                                            <action selector="rotateButtonUp:" destination="BYZ-38-t0r" eventType="touchUpInside" id="mep-fP-83V"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZOD-VX-f8n">
+                                        <rect key="frame" x="182.66666666666666" y="79.666666666666629" width="65" height="65"/>
+                                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="65" id="ECS-cf-aAL"/>
+                                            <constraint firstAttribute="height" constant="65" id="GeQ-So-2yZ"/>
+                                        </constraints>
+                                        <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                        <connections>
+                                            <action selector="shutterButtonDown:" destination="BYZ-38-t0r" eventType="touchDown" id="kKY-Gz-CPS"/>
+                                            <action selector="shutterButtonUp:" destination="BYZ-38-t0r" eventType="touchUpInside" id="qVm-Bo-qBQ"/>
+                                        </connections>
+                                    </button>
+                                </subviews>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <constraints>
-                                    <constraint firstAttribute="width" constant="65" id="ECS-cf-aAL"/>
-                                    <constraint firstAttribute="height" constant="65" id="GeQ-So-2yZ"/>
+                                    <constraint firstItem="8Fj-9S-oRZ" firstAttribute="centerY" secondItem="Unj-oI-FvN" secondAttribute="centerY" id="DXg-5S-7uf"/>
+                                    <constraint firstItem="pvL-64-kB7" firstAttribute="top" secondItem="Unj-oI-FvN" secondAttribute="top" id="Dql-Su-hl1"/>
+                                    <constraint firstItem="ZOD-VX-f8n" firstAttribute="centerX" secondItem="Unj-oI-FvN" secondAttribute="centerX" id="F9T-Vd-SSZ"/>
+                                    <constraint firstAttribute="trailing" secondItem="8Fj-9S-oRZ" secondAttribute="trailing" constant="50" id="KHp-qc-ocj"/>
+                                    <constraint firstItem="ZOD-VX-f8n" firstAttribute="centerY" secondItem="Unj-oI-FvN" secondAttribute="centerY" id="Ox9-ow-RIW"/>
+                                    <constraint firstItem="pvL-64-kB7" firstAttribute="leading" secondItem="Unj-oI-FvN" secondAttribute="leading" id="SBv-Vd-1Dn"/>
+                                    <constraint firstAttribute="trailing" secondItem="pvL-64-kB7" secondAttribute="trailing" id="ht7-o0-1YH"/>
+                                    <constraint firstAttribute="width" secondItem="Unj-oI-FvN" secondAttribute="height" multiplier="215:112" id="mtu-BM-VU1"/>
+                                    <constraint firstAttribute="bottom" secondItem="pvL-64-kB7" secondAttribute="bottom" id="uIQ-dY-GFZ"/>
                                 </constraints>
-                                <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
-                                <connections>
-                                    <action selector="shutterButtonDown:" destination="BYZ-38-t0r" eventType="touchDown" id="kKY-Gz-CPS"/>
-                                    <action selector="shutterButtonUp:" destination="BYZ-38-t0r" eventType="touchUpInside" id="qVm-Bo-qBQ"/>
-                                </connections>
-                            </button>
+                            </view>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="SDy-gN-gav" userLabel="Top Container">
+                                <rect key="frame" x="0.0" y="0.0" width="430" height="100"/>
+                                <subviews>
+                                    <view alpha="0.80000000000000004" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" translatesAutoresizingMaskIntoConstraints="NO" id="516-vO-A1h" userLabel="Top Black View">
+                                        <rect key="frame" x="0.0" y="0.0" width="430" height="100"/>
+                                        <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </view>
+                                </subviews>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstItem="516-vO-A1h" firstAttribute="leading" secondItem="SDy-gN-gav" secondAttribute="leading" id="4I6-bu-UbS"/>
+                                    <constraint firstAttribute="bottom" secondItem="516-vO-A1h" secondAttribute="bottom" id="bOw-xa-ifx"/>
+                                    <constraint firstItem="516-vO-A1h" firstAttribute="top" secondItem="SDy-gN-gav" secondAttribute="top" id="eAF-VZ-oql"/>
+                                    <constraint firstAttribute="trailing" secondItem="516-vO-A1h" secondAttribute="trailing" id="rsP-xg-ARP"/>
+                                    <constraint firstAttribute="width" secondItem="SDy-gN-gav" secondAttribute="height" multiplier="43:10" id="yDc-dc-bqZ"/>
+                                </constraints>
+                            </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="g0P-h1-zzi"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <gestureRecognizers/>
                         <constraints>
+                            <constraint firstAttribute="bottom" secondItem="Unj-oI-FvN" secondAttribute="bottom" id="6VY-Jx-Sqi"/>
+                            <constraint firstItem="SDy-gN-gav" firstAttribute="leading" secondItem="g0P-h1-zzi" secondAttribute="leading" id="8SZ-14-qSc"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="8vq-yh-ny0"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="trailing" secondItem="g0P-h1-zzi" secondAttribute="trailing" id="ESQ-WI-KPd"/>
-                            <constraint firstItem="ZOD-VX-f8n" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="d08-nW-QeV"/>
+                            <constraint firstAttribute="trailing" secondItem="Unj-oI-FvN" secondAttribute="trailing" id="a3y-JB-xnv"/>
+                            <constraint firstItem="Unj-oI-FvN" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="lSy-Rw-Mmd"/>
+                            <constraint firstItem="g0P-h1-zzi" firstAttribute="trailing" secondItem="SDy-gN-gav" secondAttribute="trailing" id="s8m-bK-bYV"/>
+                            <constraint firstItem="SDy-gN-gav" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="tMt-GX-SqT"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="leading" secondItem="g0P-h1-zzi" secondAttribute="leading" id="w1U-8K-PF2"/>
-                            <constraint firstItem="g0P-h1-zzi" firstAttribute="bottom" secondItem="ZOD-VX-f8n" secondAttribute="bottom" constant="50" id="wWj-yd-gT5"/>
                             <constraint firstAttribute="bottom" secondItem="2Ah-jv-asZ" secondAttribute="bottom" id="xJL-9Z-fqd"/>
                         </constraints>
                         <connections>
@@ -57,6 +114,7 @@
                     </view>
                     <connections>
                         <outlet property="cameraView" destination="2Ah-jv-asZ" id="qAh-6L-LF2"/>
+                        <outlet property="rotateCameraButton" destination="8Fj-9S-oRZ" id="ZZw-fl-Osg"/>
                         <outlet property="shutterButton" destination="ZOD-VX-f8n" id="PWa-ot-Er7"/>
                     </connections>
                 </viewController>
@@ -67,10 +125,11 @@
                     </connections>
                 </pinchGestureRecognizer>
             </objects>
-            <point key="canvasLocation" x="132" y="-34"/>
+            <point key="canvasLocation" x="131.16279069767441" y="-34.120171673819748"/>
         </scene>
     </scenes>
     <resources>
+        <image name="camera.rotate.fill" catalog="system" width="128" height="93"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

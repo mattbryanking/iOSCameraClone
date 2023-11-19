@@ -1,10 +1,3 @@
-//
-//  ViewController.swift
-//  CameraClone
-//
-//  Created by Matthew King on 11/11/23.
-//
-
 import AVFoundation
 import UIKit
 
@@ -12,9 +5,11 @@ class ViewController: UIViewController {
     
     var session: AVCaptureSession?
     let output = AVCapturePhotoOutput()
+    var videoOutput = AVCaptureMovieFileOutput()
     var previewLayer = AVCaptureVideoPreviewLayer()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
   
+    @IBOutlet weak var rotateCameraButton: UIButton!
     @IBOutlet weak var shutterButton: UIButton!
     @IBOutlet weak var cameraView: UIView!
     
@@ -31,30 +26,35 @@ class ViewController: UIViewController {
         var zoom: CGFloat = 1.0
     }
     
-    var cameraConfig = CameraConfig(cameraMode: .photo, cameraPosition: .back, frameRate: 30, resolution: .high, isHDR: false)
+    var cameraConfig = CameraConfig(cameraMode: .video, cameraPosition: .back, frameRate: 30, resolution: .high, isHDR: false)
     
     override func viewDidLoad() {
         super.viewDidLoad()
        
         session = AVCaptureSession()
+        
         setupCamera()
         updateUI()
         
         // programatically round button and add border
         shutterButton.layer.cornerRadius = shutterButton.frame.width / 2
         shutterButton.layer.masksToBounds = true
-        shutterButton.layer.zPosition = 1
+        shutterButton.layer.zPosition = 100
+        
+        rotateCameraButton.layer.cornerRadius = rotateCameraButton.frame.width / 2
+        rotateCameraButton.layer.masksToBounds = true
         
         // add ring behind button
         let circleLayer = CAShapeLayer()
         let circleDiameter: CGFloat = shutterButton.frame.width * 1.125
-        let circlePath = UIBezierPath(ovalIn: CGRect(x: shutterButton.center.x - circleDiameter / 2, y: shutterButton.center.y - circleDiameter / 2, width: circleDiameter, height: circleDiameter))
+        let buttonCenterInCameraView = cameraView.convert(shutterButton.center, from: shutterButton.superview)
+        let circlePath = UIBezierPath(ovalIn: CGRect(x: buttonCenterInCameraView.x - circleDiameter / 2, y: buttonCenterInCameraView.y - circleDiameter / 2, width: circleDiameter, height: circleDiameter))
 
         circleLayer.path = circlePath.cgPath
         circleLayer.fillColor = UIColor.clear.cgColor
         circleLayer.strokeColor = UIColor.white.cgColor
         circleLayer.lineWidth = 4
-        circleLayer.zPosition = 1
+        circleLayer.zPosition = 100
 
         if let shutterButtonIndex = cameraView.layer.sublayers?.firstIndex(of: shutterButton.layer) {
             cameraView.layer.insertSublayer(circleLayer, at: UInt32(shutterButtonIndex))
@@ -97,6 +97,13 @@ class ViewController: UIViewController {
                 print("could not add output to camera session")
                 return
             }
+            
+            if session.canAddOutput(videoOutput) {
+                session.addOutput(videoOutput)
+            } else {
+                print("could not add video output to camera session")
+                return
+            }
         } catch {
             print("could not initialize camera for position: \(cameraConfig.cameraPosition)")
             return
@@ -116,11 +123,44 @@ class ViewController: UIViewController {
         }
     }
     
+    // change shutter button to red for video
     func updateUI() {
         self.shutterButton.backgroundColor = self.cameraConfig.cameraMode == .video ? UIColor.red : UIColor.white
-
     }
     
+    func switchCamera() {
+        guard let session = session else { return }
+
+        session.beginConfiguration()
+        defer { session.commitConfiguration() }
+
+        guard let currentInput = session.inputs.first as? AVCaptureDeviceInput else { return }
+
+        cameraConfig.cameraPosition = (cameraConfig.cameraPosition == .front) ? .back : .front
+
+        guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
+            print("Could not find the camera for position: \(cameraConfig.cameraPosition)")
+            return
+        }
+
+        do {
+            let newInput = try AVCaptureDeviceInput(device: newCamera)
+
+            session.removeInput(currentInput)
+            if session.canAddInput(newInput) {
+                session.addInput(newInput)
+            } else {
+                print("Could not add new input")
+                return
+            }
+        } catch {
+            print("Error switching cameras: \(error)")
+            return
+        }
+    }
+
+    
+    // master function for saving photo input
     func takePhoto() {
         guard let session = session, session.isRunning else {
                print("could not access session")
@@ -166,13 +206,30 @@ class ViewController: UIViewController {
         }
     }
     
-    
     @IBAction func shutterButtonUp(_ sender: UIButton) {
         feedbackGenerator.impactOccurred()
         UIView.animate(withDuration: 0.1) {
             sender.transform = CGAffineTransform.identity
         }
-        takePhoto()
+        
+        if cameraConfig.cameraMode == .video {
+            if videoOutput.isRecording {
+                videoOutput.stopRecording()
+            } else {
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyyMMddHHmmss"
+                let dateString = dateFormatter.string(from: Date())
+                let outputPath = NSTemporaryDirectory() + "output_" + dateString + ".mov"
+                let outputFileURL = URL(fileURLWithPath: outputPath)
+                videoOutput.startRecording(to: outputFileURL, recordingDelegate: self)
+            }
+        } else {
+            takePhoto()
+        }
+    }
+    
+    @IBAction func rotateButtonUp(_ sender: UIButton) {
+        switchCamera()
     }
     
     @IBAction func zoomPinchRecognizer(_ sender: UIPinchGestureRecognizer) {
@@ -202,7 +259,8 @@ class ViewController: UIViewController {
     }
 }
 
-extension ViewController: AVCapturePhotoCaptureDelegate {
+extension ViewController: AVCapturePhotoCaptureDelegate, AVCaptureFileOutputRecordingDelegate {
+
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         guard let imageData = photo.fileDataRepresentation(),
               let image = UIImage(data: imageData) else {
@@ -220,5 +278,25 @@ extension ViewController: AVCapturePhotoCaptureDelegate {
             print("photo saved successfully")
         }
     }
-}
 
+    func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
+        print("Video recording started")
+    }
+
+    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
+        if let error = error {
+            print("Video recording error: \(error.localizedDescription)")
+        } else {
+            print("Video recording finished, saved at: \(outputFileURL.path)")
+            UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(video(_:didFinishSavingWithError:contextInfo:)), nil)
+        }
+    }
+
+    @objc func video(_ videoPath: String, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+        if let error = error {
+            print("Error saving video: \(error.localizedDescription)")
+        } else {
+            print("Video saved successfully")
+        }
+    }
+}

@@ -21,11 +21,5 @@
 			</array>
 		</dict>
 	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Camera access is needed for Photo and Video</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Microphone access is needed for Audio during Video Recording</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Camera Roll access is needed to save captured Photos and Videos</string>
 </dict>
 </plist>
