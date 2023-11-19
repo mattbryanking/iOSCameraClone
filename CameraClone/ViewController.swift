@@ -1,7 +1,7 @@
 import AVFoundation
 import UIKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCaptureFileOutputRecordingDelegate {
     
     var session: AVCaptureSession?
     let output = AVCapturePhotoOutput()
@@ -9,14 +9,17 @@ class ViewController: UIViewController {
     var previewLayer = AVCaptureVideoPreviewLayer()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     
+    var burstModeTimer: Timer?
+    
     @IBOutlet weak var CameraModeScroller: UIScrollView!
+    @IBOutlet weak var cameraModeStackView: UIStackView!
     @IBOutlet weak var rotateCameraButton: UIButton!
     @IBOutlet weak var shutterButton: UIButton!
     @IBOutlet weak var cameraView: UIView!
     
     struct CameraConfig {
         enum CameraMode: CaseIterable, CustomStringConvertible {
-            case timelapse, video, photo, burst, portrait
+            case timelapse, video, photo, burst, slomo
             
             var description: String {
                 switch self {
@@ -28,8 +31,25 @@ class ViewController: UIViewController {
                     return "PHOTO"
                 case .burst:
                     return "BURST"
-                case .portrait:
-                    return "PORTRAIT"
+                case .slomo:
+                    return "SLO-MO"
+                }
+            }
+        }
+        
+        enum AspectRatio {
+            case ratio4_3
+            case ratio16_9
+            case ratio1_1
+            
+            var size: CGSize {
+                switch self {
+                case .ratio4_3:
+                    return CGSize(width: 4, height: 3)
+                case .ratio16_9:
+                    return CGSize(width: 16, height: 9)
+                case .ratio1_1:
+                    return CGSize(width: 1, height: 1)
                 }
             }
         }
@@ -38,14 +58,11 @@ class ViewController: UIViewController {
         var cameraPosition: AVCaptureDevice.Position
         var frameRate: Int
         var resolution: AVCaptureSession.Preset
-        var isHDR: Bool
-        var isNightmode: Bool
+        var aspectRatio: AspectRatio = .ratio1_1
         var zoom: CGFloat = 1.0
     }
     
-    var cameraConfig = CameraConfig(cameraMode: .video, cameraPosition: .back, frameRate: 30, resolution: .high, isHDR: false, isNightmode: false)
-    
-    var pickerRotationAngle : CGFloat!
+    var cameraConfig = CameraConfig(cameraMode: .photo, cameraPosition: .back, frameRate: 30, resolution: .high)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -53,28 +70,30 @@ class ViewController: UIViewController {
         session = AVCaptureSession()
         
         setupCamera()
+        setupCameraModeScroller()
+        setupShutterButton()
+        setupRotateCameraButton()
         updateUI()
         
+        print("loaded!")
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        previewLayer.frame = cameraView.bounds
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        CameraModeScroller.setContentOffset(CGPoint(x: CameraModeScroller.contentSize.width / 2 - CameraModeScroller.bounds.size.width / 2, y: 0), animated: false)
+    }
+    
+    func setupCameraModeScroller() {
         let leadingConstraint = CameraModeScroller.leadingAnchor.constraint(equalTo: view.leadingAnchor)
         let trailingConstraint = CameraModeScroller.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         let widthConstraint = CameraModeScroller.widthAnchor.constraint(equalTo: view.widthAnchor)
         
         NSLayoutConstraint.activate([leadingConstraint, trailingConstraint, widthConstraint])
-        
-        let stackView = UIStackView()
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.axis = .horizontal
-        stackView.spacing = 40
-        stackView.distribution = .equalSpacing
-        CameraModeScroller.addSubview(stackView)
-        
-        NSLayoutConstraint.activate([
-            stackView.leadingAnchor.constraint(equalTo: CameraModeScroller.leadingAnchor),
-            stackView.trailingAnchor.constraint(equalTo: CameraModeScroller.trailingAnchor),
-            stackView.topAnchor.constraint(equalTo: CameraModeScroller.topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: CameraModeScroller.bottomAnchor),
-            stackView.heightAnchor.constraint(equalTo: CameraModeScroller.heightAnchor)
-        ])
         
         CameraModeScroller.showsVerticalScrollIndicator = false
         CameraModeScroller.showsHorizontalScrollIndicator = false
@@ -83,17 +102,22 @@ class ViewController: UIViewController {
             let button = UIButton()
             button.setTitle(mode.description, for: .normal)
             button.setTitleColor(.white, for: .normal)
+            if button.title(for: .normal) == cameraConfig.cameraMode.description {
+                button.setTitleColor(.systemYellow, for: .normal)
+            }
             button.contentHorizontalAlignment = .center
-            stackView.addArrangedSubview(button)
+            button.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+            // add button tap action
+            button.addTarget(self, action: #selector(cameraModeButtonUp(_:)), for: .touchUpInside)
+            cameraModeStackView.addArrangedSubview(button)
         }
-        
+    }
+    
+    func setupShutterButton() {
         // programatically round button and add border
         shutterButton.layer.cornerRadius = shutterButton.frame.width / 2
         shutterButton.layer.masksToBounds = true
         shutterButton.layer.zPosition = 100
-        
-        rotateCameraButton.layer.cornerRadius = rotateCameraButton.frame.width / 2
-        rotateCameraButton.layer.masksToBounds = true
         
         // add ring behind button
         let circleLayer = CAShapeLayer()
@@ -112,16 +136,11 @@ class ViewController: UIViewController {
         } else {
             cameraView.layer.addSublayer(circleLayer)
         }
-        
-        print("loaded!")
     }
     
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        previewLayer.frame = cameraView.bounds
-        
-        CameraModeScroller.setContentOffset(CGPoint(x: CameraModeScroller.contentSize.width / 2 - CameraModeScroller.bounds.size.width / 2, y: 0), animated: false)
-        
+    func setupRotateCameraButton() {
+        rotateCameraButton.layer.cornerRadius = rotateCameraButton.frame.width / 2
+        rotateCameraButton.layer.masksToBounds = true
     }
     
     func setupCamera() {
@@ -167,6 +186,7 @@ class ViewController: UIViewController {
         previewLayer.videoGravity = .resizeAspectFill
         previewLayer.frame = cameraView.bounds
         
+        // asynchronously start camera preview feed to avoid freezing
         DispatchQueue.main.async {
             self.cameraView.layer.addSublayer(self.previewLayer)
         }
@@ -177,9 +197,21 @@ class ViewController: UIViewController {
         }
     }
     
-    // change shutter button to red for video
     func updateUI() {
-        self.shutterButton.backgroundColor = self.cameraConfig.cameraMode == .video ? UIColor.red : UIColor.white
+        // change shutter button to red for video or white for camera
+        if cameraConfig.cameraMode == .photo || cameraConfig.cameraMode == .burst {
+            shutterButton.backgroundColor = UIColor.white
+        }
+        else {
+            shutterButton.backgroundColor = UIColor.red
+        }
+        
+        // change camera mode buttons to reflect selected
+        if let stackView = CameraModeScroller.subviews.first as? UIStackView {
+            for case let button as UIButton in stackView.arrangedSubviews {
+                button.setTitleColor(button.title(for: .normal) == cameraConfig.cameraMode.description ? .systemYellow : .white, for: .normal)
+            }
+        }
     }
     
     func switchCamera() {
@@ -214,7 +246,7 @@ class ViewController: UIViewController {
     }
     
     
-    // master function for saving photo input
+    // master function for saving photo method/settings
     func takePhoto() {
         guard let session = session, session.isRunning else {
             print("could not access session")
@@ -223,38 +255,71 @@ class ViewController: UIViewController {
         
         let photoSettings = AVCapturePhotoSettings()
         
-        // handle hdr
-        
-        // handle various camera modes
         switch cameraConfig.cameraMode {
         case .photo:
-            break
-        case .portrait:
-            break
+            output.capturePhoto(with: photoSettings, delegate: self)
         case .burst:
+            burstModeTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                guard let timer = self else { return }
+                self?.feedbackGenerator.impactOccurred()
+                let photoSettings = AVCapturePhotoSettings()
+                timer.output.capturePhoto(with: photoSettings, delegate: timer)
+            }
+        default:
+            break
+        }
+    }
+    
+    // master function to dertermine video method/settings
+    func takeVideo() {
+        
+        // since videos are larger, their files need to be managed directly here.
+        // we store them in temp memory, and specify an output path. photos
+        // don't need this step as they're automatically handled in memory
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMddHHmmss"
+        let dateString = dateFormatter.string(from: Date())
+        let outputPath = NSTemporaryDirectory() + dateString + ".mov"
+        let outputFileURL = URL(fileURLWithPath: outputPath)
+        
+        switch cameraConfig.cameraMode {
+        case .video:
+            videoOutput.startRecording(to: outputFileURL, recordingDelegate: self)
+        case .slomo:
+            break
+        case .timelapse:
             break
         default:
             break
         }
-        
-        // apply zoom
-        if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) {
-            do {
-                try device.lockForConfiguration()
-                device.videoZoomFactor = max(min(cameraConfig.zoom, device.maxAvailableVideoZoomFactor), device.minAvailableVideoZoomFactor)
-                device.unlockForConfiguration()
-            } catch {
-                print("error setting zoom: \(error)")
-            }
+    }
+    
+    
+    @objc func cameraModeButtonUp(_ sender: UIButton) {
+        guard let title = sender.title(for: .normal),
+              let mode = CameraConfig.CameraMode.allCases.first(where: { $0.description == title }) else {
+            return
         }
         
-        output.capturePhoto(with: photoSettings, delegate: self)
+        cameraConfig.cameraMode = mode
+        updateUI()
     }
+    
     
     @IBAction func shutterButtonDown(_ sender: UIButton) {
         feedbackGenerator.impactOccurred()
         UIView.animate(withDuration: 0.3) {
             sender.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+        }
+        
+        if cameraConfig.cameraMode == .photo || cameraConfig.cameraMode == .burst {
+            takePhoto()
+        } else {
+            if videoOutput.isRecording {
+                videoOutput.stopRecording()
+            } else {
+                takeVideo()
+            }
         }
     }
     
@@ -264,19 +329,9 @@ class ViewController: UIViewController {
             sender.transform = CGAffineTransform.identity
         }
         
-        if cameraConfig.cameraMode == .video {
-            if videoOutput.isRecording {
-                videoOutput.stopRecording()
-            } else {
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyyMMddHHmmss"
-                let dateString = dateFormatter.string(from: Date())
-                let outputPath = NSTemporaryDirectory() + "output_" + dateString + ".mov"
-                let outputFileURL = URL(fileURLWithPath: outputPath)
-                videoOutput.startRecording(to: outputFileURL, recordingDelegate: self)
-            }
-        } else {
-            takePhoto()
+        if cameraConfig.cameraMode == .burst {
+            burstModeTimer?.invalidate()
+            burstModeTimer = nil
         }
     }
     
@@ -309,16 +364,26 @@ class ViewController: UIViewController {
             }
         }
     }
-}
-
-extension ViewController: AVCapturePhotoCaptureDelegate, AVCaptureFileOutputRecordingDelegate {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         guard let imageData = photo.fileDataRepresentation(),
-              let image = UIImage(data: imageData) else {
+              var image = UIImage(data: imageData) else {
             print("could not create image data")
             return
         }
+        
+        image = cropImage(image: image)
         
         UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
     }
@@ -332,25 +397,50 @@ extension ViewController: AVCapturePhotoCaptureDelegate, AVCaptureFileOutputReco
     }
     
     func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
-        print("Video recording started")
+        print("video recording started")
     }
     
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         if let error = error {
-            print("Video recording error: \(error.localizedDescription)")
+            print("video recording error: \(error.localizedDescription)")
         } else {
-            print("Video recording finished, saved at: \(outputFileURL.path)")
+            print("video recording finished, saved at: \(outputFileURL.path)")
             UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(video(_:didFinishSavingWithError:contextInfo:)), nil)
         }
     }
     
     @objc func video(_ videoPath: String, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         if let error = error {
-            print("Error saving video: \(error.localizedDescription)")
+            print("error saving video: \(error.localizedDescription)")
         } else {
-            print("Video saved successfully")
+            print("video saved successfully")
         }
     }
+    
+    
+    func cropImage(image: UIImage) -> UIImage {
+        let size = image.size
+        let targetSize = cameraConfig.aspectRatio.size
+        let widthRatio = targetSize.width / size.width
+        let heightRatio = targetSize.height / size.height
+        let newSize: CGSize
+        
+        if widthRatio > heightRatio {
+            newSize = CGSize(width: size.width, height: size.width * targetSize.height / targetSize.width)
+        } else {
+            newSize = CGSize(width: size.height * targetSize.width / targetSize.height, height: size.height)
+        }
+        
+        let rect = CGRect(x: (size.width - newSize.width) / 2, y: (size.height - newSize.height) / 2, width: newSize.width, height: newSize.height)
+        
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: CGRect(x: -rect.origin.x, y: -rect.origin.y, width: size.width, height: size.height))
+        let newImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return newImage ?? image
+    }
+    
 }
 
 

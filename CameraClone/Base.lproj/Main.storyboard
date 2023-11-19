@@ -34,9 +34,19 @@
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
                                     <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wMh-CC-TW3">
-                                        <rect key="frame" x="0.0" y="48" width="430" height="128"/>
+                                        <rect key="frame" x="0.0" y="8" width="430" height="50"/>
+                                        <subviews>
+                                            <stackView opaque="NO" contentMode="scaleToFill" ambiguous="YES" distribution="fillEqually" alignment="center" spacing="25" translatesAutoresizingMaskIntoConstraints="NO" id="7Wg-Qe-XeO" userLabel="Camera Mode Stack View">
+                                                <rect key="frame" x="115" y="0.0" width="200" height="50"/>
+                                            </stackView>
+                                        </subviews>
                                         <constraints>
+                                            <constraint firstAttribute="bottom" secondItem="7Wg-Qe-XeO" secondAttribute="bottom" id="BVs-4J-lCV"/>
+                                            <constraint firstAttribute="trailing" secondItem="7Wg-Qe-XeO" secondAttribute="trailing" id="G3r-iP-dKF"/>
+                                            <constraint firstItem="7Wg-Qe-XeO" firstAttribute="top" secondItem="wMh-CC-TW3" secondAttribute="top" id="Kem-8V-bLm"/>
                                             <constraint firstAttribute="height" constant="50" id="KtS-0g-Aks"/>
+                                            <constraint firstItem="7Wg-Qe-XeO" firstAttribute="leading" secondItem="wMh-CC-TW3" secondAttribute="leading" id="VGU-yd-FdD"/>
+                                            <constraint firstItem="7Wg-Qe-XeO" firstAttribute="height" secondItem="wMh-CC-TW3" secondAttribute="height" id="faX-CY-k3O"/>
                                         </constraints>
                                         <viewLayoutGuide key="contentLayoutGuide" id="HnV-AT-t8O"/>
                                         <viewLayoutGuide key="frameLayoutGuide" id="pYJ-Y8-X2d"/>
@@ -125,6 +135,7 @@
                     </view>
                     <connections>
                         <outlet property="CameraModeScroller" destination="wMh-CC-TW3" id="a68-3l-WeR"/>
+                        <outlet property="cameraModeStackView" destination="7Wg-Qe-XeO" id="qUg-63-enI"/>
                         <outlet property="cameraView" destination="2Ah-jv-asZ" id="qAh-6L-LF2"/>
                         <outlet property="rotateCameraButton" destination="8Fj-9S-oRZ" id="ZZw-fl-Osg"/>
                         <outlet property="shutterButton" destination="ZOD-VX-f8n" id="PWa-ot-Er7"/>
