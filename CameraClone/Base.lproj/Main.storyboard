@@ -33,6 +33,14 @@
                                         <rect key="frame" x="0.0" y="0.0" width="430" height="224"/>
                                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                     </view>
+                                    <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wMh-CC-TW3">
+                                        <rect key="frame" x="0.0" y="48" width="430" height="128"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="50" id="KtS-0g-Aks"/>
+                                        </constraints>
+                                        <viewLayoutGuide key="contentLayoutGuide" id="HnV-AT-t8O"/>
+                                        <viewLayoutGuide key="frameLayoutGuide" id="pYJ-Y8-X2d"/>
+                                    </scrollView>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="8Fj-9S-oRZ" userLabel="Rotate Camera Button">
                                         <rect key="frame" x="335" y="89.666666666666629" width="45" height="45"/>
                                         <constraints>
@@ -70,8 +78,11 @@
                                     <constraint firstAttribute="trailing" secondItem="8Fj-9S-oRZ" secondAttribute="trailing" constant="50" id="KHp-qc-ocj"/>
                                     <constraint firstItem="ZOD-VX-f8n" firstAttribute="centerY" secondItem="Unj-oI-FvN" secondAttribute="centerY" id="Ox9-ow-RIW"/>
                                     <constraint firstItem="pvL-64-kB7" firstAttribute="leading" secondItem="Unj-oI-FvN" secondAttribute="leading" id="SBv-Vd-1Dn"/>
+                                    <constraint firstItem="wMh-CC-TW3" firstAttribute="top" secondItem="Unj-oI-FvN" secondAttribute="topMargin" id="gRd-hy-IQT"/>
                                     <constraint firstAttribute="trailing" secondItem="pvL-64-kB7" secondAttribute="trailing" id="ht7-o0-1YH"/>
                                     <constraint firstAttribute="width" secondItem="Unj-oI-FvN" secondAttribute="height" multiplier="215:112" id="mtu-BM-VU1"/>
+                                    <constraint firstAttribute="trailingMargin" secondItem="wMh-CC-TW3" secondAttribute="trailing" id="nRh-8r-yB3"/>
+                                    <constraint firstItem="wMh-CC-TW3" firstAttribute="leading" secondItem="Unj-oI-FvN" secondAttribute="leadingMargin" id="swg-dZ-HWr"/>
                                     <constraint firstAttribute="bottom" secondItem="pvL-64-kB7" secondAttribute="bottom" id="uIQ-dY-GFZ"/>
                                 </constraints>
                             </view>
@@ -113,6 +124,7 @@
                         </connections>
                     </view>
                     <connections>
+                        <outlet property="CameraModeScroller" destination="wMh-CC-TW3" id="a68-3l-WeR"/>
                         <outlet property="cameraView" destination="2Ah-jv-asZ" id="qAh-6L-LF2"/>
                         <outlet property="rotateCameraButton" destination="8Fj-9S-oRZ" id="ZZw-fl-Osg"/>
                         <outlet property="shutterButton" destination="ZOD-VX-f8n" id="PWa-ot-Er7"/>

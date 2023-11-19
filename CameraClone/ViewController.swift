@@ -9,26 +9,27 @@ class ViewController: UIViewController {
     var previewLayer = AVCaptureVideoPreviewLayer()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     
+    @IBOutlet weak var CameraModeScroller: UIScrollView!
     @IBOutlet weak var rotateCameraButton: UIButton!
     @IBOutlet weak var shutterButton: UIButton!
     @IBOutlet weak var cameraView: UIView!
     
     struct CameraConfig {
         enum CameraMode: CaseIterable, CustomStringConvertible {
-            case photo, video, portrait, nightMode, burst
+            case timelapse, video, photo, burst, portrait
             
             var description: String {
                 switch self {
-                case .photo:
-                    return "Photo"
+                case .timelapse:
+                    return "TIMELAPSE"
                 case .video:
-                    return "Video"
-                case .portrait:
-                    return "Portrait"
-                case .nightMode:
-                    return "Night Mode"
+                    return "VIDEO"
+                case .photo:
+                    return "PHOTO"
                 case .burst:
-                    return "Burst"
+                    return "BURST"
+                case .portrait:
+                    return "PORTRAIT"
                 }
             }
         }
@@ -38,11 +39,14 @@ class ViewController: UIViewController {
         var frameRate: Int
         var resolution: AVCaptureSession.Preset
         var isHDR: Bool
+        var isNightmode: Bool
         var zoom: CGFloat = 1.0
     }
     
-    var cameraConfig = CameraConfig(cameraMode: .video, cameraPosition: .back, frameRate: 30, resolution: .high, isHDR: false)
-        
+    var cameraConfig = CameraConfig(cameraMode: .video, cameraPosition: .back, frameRate: 30, resolution: .high, isHDR: false, isNightmode: false)
+    
+    var pickerRotationAngle : CGFloat!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -50,6 +54,38 @@ class ViewController: UIViewController {
         
         setupCamera()
         updateUI()
+        
+        let leadingConstraint = CameraModeScroller.leadingAnchor.constraint(equalTo: view.leadingAnchor)
+        let trailingConstraint = CameraModeScroller.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        let widthConstraint = CameraModeScroller.widthAnchor.constraint(equalTo: view.widthAnchor)
+        
+        NSLayoutConstraint.activate([leadingConstraint, trailingConstraint, widthConstraint])
+        
+        let stackView = UIStackView()
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.axis = .horizontal
+        stackView.spacing = 40
+        stackView.distribution = .equalSpacing
+        CameraModeScroller.addSubview(stackView)
+        
+        NSLayoutConstraint.activate([
+            stackView.leadingAnchor.constraint(equalTo: CameraModeScroller.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: CameraModeScroller.trailingAnchor),
+            stackView.topAnchor.constraint(equalTo: CameraModeScroller.topAnchor),
+            stackView.bottomAnchor.constraint(equalTo: CameraModeScroller.bottomAnchor),
+            stackView.heightAnchor.constraint(equalTo: CameraModeScroller.heightAnchor)
+        ])
+        
+        CameraModeScroller.showsVerticalScrollIndicator = false
+        CameraModeScroller.showsHorizontalScrollIndicator = false
+        
+        for mode in CameraConfig.CameraMode.allCases {
+            let button = UIButton()
+            button.setTitle(mode.description, for: .normal)
+            button.setTitleColor(.white, for: .normal)
+            button.contentHorizontalAlignment = .center
+            stackView.addArrangedSubview(button)
+        }
         
         // programatically round button and add border
         shutterButton.layer.cornerRadius = shutterButton.frame.width / 2
@@ -83,6 +119,9 @@ class ViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer.frame = cameraView.bounds
+        
+        CameraModeScroller.setContentOffset(CGPoint(x: CameraModeScroller.contentSize.width / 2 - CameraModeScroller.bounds.size.width / 2, y: 0), animated: false)
+        
     }
     
     func setupCamera() {
@@ -191,8 +230,6 @@ class ViewController: UIViewController {
         case .photo:
             break
         case .portrait:
-            break
-        case .nightMode:
             break
         case .burst:
             break
@@ -315,3 +352,5 @@ extension ViewController: AVCapturePhotoCaptureDelegate, AVCaptureFileOutputReco
         }
     }
 }
+
+
