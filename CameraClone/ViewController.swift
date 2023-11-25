@@ -1,6 +1,107 @@
 import AVFoundation
 import UIKit
 
+struct CameraConfig {
+    enum CameraMode: CaseIterable, CustomStringConvertible {
+        case timelapse, video, photo, burst, slomo
+        
+        var description: String {
+            switch self {
+            case .timelapse:
+                return "TIMELAPSE"
+            case .video:
+                return "VIDEO"
+            case .photo:
+                return "PHOTO"
+            case .burst:
+                return "BURST"
+            case .slomo:
+                return "SLO-MO"
+            }
+        }
+    }
+    
+    enum Flash: CaseIterable, CustomStringConvertible {
+        case auto, on, off
+        
+        var description: String {
+            switch self {
+            case .auto:
+                return "AUTO"
+            case .on:
+                return "ON"
+            case .off:
+                return "OFF"
+            }
+        }
+    }
+    
+    enum Quality: CaseIterable, CustomStringConvertible {
+        case max, med, low
+        
+        var preset: AVCaptureSession.Preset {
+            switch self {
+            case .max:
+                return .hd4K3840x2160
+            case .med:
+                return .hd1920x1080
+            case .low:
+                return .vga640x480
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .max:
+                return "MAX"
+            case .med:
+                return "MED"
+            case .low:
+                return "LOW"
+            }
+        }
+    }
+    
+    enum AspectRatio: CaseIterable, CustomStringConvertible{
+        case full, ratio4_3, ratio16_9, ratio1_1
+        
+        var size: CGSize {
+            switch self {
+            case .full:
+                return CGSize()
+            case .ratio4_3:
+                return CGSize(width: 4, height: 3)
+            case .ratio16_9:
+                return CGSize(width: 16, height: 9)
+            case .ratio1_1:
+                return CGSize(width: 1, height: 1)
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .full:
+                return "FULL"
+            case .ratio4_3:
+                return "4:3"
+            case .ratio16_9:
+                return "16:9"
+            case .ratio1_1:
+                return "1:1"
+            }
+        }
+    }
+    
+    var cameraMode: CameraMode = .photo
+    var cameraPosition: AVCaptureDevice.Position = .back
+    var flash: Flash = .auto
+    var quality: Quality = .max
+    var aspectRatio: AspectRatio = .full
+    var zoom: CGFloat = 1.0
+}
+
+var cameraConfig = CameraConfig()
+
 class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCaptureFileOutputRecordingDelegate {
     
     var session: AVCaptureSession?
@@ -8,61 +109,24 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     var videoOutput = AVCaptureMovieFileOutput()
     var previewLayer = AVCaptureVideoPreviewLayer()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
-    
     var burstModeTimer: Timer?
+    let focusIndicator = UIImageView()
     
+    @IBOutlet weak var aspectRatioPickerView: UIPickerView!
+    @IBOutlet weak var qualityPickerView: UIPickerView!
+    @IBOutlet weak var flashPickerView: UIPickerView!
     @IBOutlet weak var CameraModeScroller: UIScrollView!
     @IBOutlet weak var cameraModeStackView: UIStackView!
     @IBOutlet weak var rotateCameraButton: UIButton!
     @IBOutlet weak var shutterButton: UIButton!
+    @IBOutlet weak var shutterRing: UIButton!
     @IBOutlet weak var cameraView: UIView!
     
-    struct CameraConfig {
-        enum CameraMode: CaseIterable, CustomStringConvertible {
-            case timelapse, video, photo, burst, slomo
-            
-            var description: String {
-                switch self {
-                case .timelapse:
-                    return "TIMELAPSE"
-                case .video:
-                    return "VIDEO"
-                case .photo:
-                    return "PHOTO"
-                case .burst:
-                    return "BURST"
-                case .slomo:
-                    return "SLO-MO"
-                }
-            }
-        }
-        
-        enum AspectRatio {
-            case ratio4_3
-            case ratio16_9
-            case ratio1_1
-            
-            var size: CGSize {
-                switch self {
-                case .ratio4_3:
-                    return CGSize(width: 4, height: 3)
-                case .ratio16_9:
-                    return CGSize(width: 16, height: 9)
-                case .ratio1_1:
-                    return CGSize(width: 1, height: 1)
-                }
-            }
-        }
-        
-        var cameraMode: CameraMode
-        var cameraPosition: AVCaptureDevice.Position
-        var frameRate: Int
-        var resolution: AVCaptureSession.Preset
-        var aspectRatio: AspectRatio = .ratio1_1
-        var zoom: CGFloat = 1.0
-    }
+    let aspectRatioDataSourceDelegate = AspectRatioPickerDataSourceDelegate()
     
-    var cameraConfig = CameraConfig(cameraMode: .photo, cameraPosition: .back, frameRate: 30, resolution: .high)
+    let qualityDataSourceDelegate = QualityPickerDataSourceDelegate()
+    
+    let flashDataSourceDelegate = FlashPickerDataSourceDelegate()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -73,6 +137,10 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         setupCameraModeScroller()
         setupShutterButton()
         setupRotateCameraButton()
+        setupFocusIndicator()
+        setupAspectRatioPickerView()
+        setupQualityPickerView()
+        setupFlashPickerView()
         updateUI()
         
         print("loaded!")
@@ -114,28 +182,13 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     }
     
     func setupShutterButton() {
-        // programatically round button and add border
         shutterButton.layer.cornerRadius = shutterButton.frame.width / 2
         shutterButton.layer.masksToBounds = true
-        shutterButton.layer.zPosition = 100
         
-        // add ring behind button
-        let circleLayer = CAShapeLayer()
-        let circleDiameter: CGFloat = shutterButton.frame.width * 1.125
-        let buttonCenterInCameraView = cameraView.convert(shutterButton.center, from: shutterButton.superview)
-        let circlePath = UIBezierPath(ovalIn: CGRect(x: buttonCenterInCameraView.x - circleDiameter / 2, y: buttonCenterInCameraView.y - circleDiameter / 2, width: circleDiameter, height: circleDiameter))
-        
-        circleLayer.path = circlePath.cgPath
-        circleLayer.fillColor = UIColor.clear.cgColor
-        circleLayer.strokeColor = UIColor.white.cgColor
-        circleLayer.lineWidth = 4
-        circleLayer.zPosition = 100
-        
-        if let shutterButtonIndex = cameraView.layer.sublayers?.firstIndex(of: shutterButton.layer) {
-            cameraView.layer.insertSublayer(circleLayer, at: UInt32(shutterButtonIndex))
-        } else {
-            cameraView.layer.addSublayer(circleLayer)
-        }
+        shutterRing.layer.cornerRadius = shutterRing.frame.width / 2
+        shutterRing.layer.borderColor = UIColor.white.cgColor
+        shutterRing.layer.borderWidth = 4
+        shutterRing.layer.masksToBounds = true
     }
     
     func setupRotateCameraButton() {
@@ -143,11 +196,41 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         rotateCameraButton.layer.masksToBounds = true
     }
     
+    func setupFocusIndicator() {
+        focusIndicator.image = UIImage(named: "FocusIcon")
+        focusIndicator.contentMode = .scaleAspectFit
+        focusIndicator.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+        focusIndicator.alpha = 0
+        focusIndicator.layer.zPosition = 100
+        cameraView.addSubview(focusIndicator)
+    }
+    
+    func setupAspectRatioPickerView() {
+        aspectRatioPickerView.dataSource = aspectRatioDataSourceDelegate
+        aspectRatioPickerView.delegate = aspectRatioDataSourceDelegate
+    }
+    
+    func setupQualityPickerView() {
+        qualityPickerView.dataSource = qualityDataSourceDelegate
+        qualityPickerView.delegate = qualityDataSourceDelegate
+        
+        qualityDataSourceDelegate.onQualityChange = { [weak self] newQuality in
+            self?.updateQuality()
+        }
+    }
+    
+    func setupFlashPickerView() {
+        flashPickerView.dataSource =
+        flashDataSourceDelegate
+        flashPickerView.delegate =
+        flashDataSourceDelegate
+    }
+    
     func setupCamera() {
         session = AVCaptureSession()
         guard let session = session else { return }
         
-        session.sessionPreset = cameraConfig.resolution
+        session.sessionPreset = cameraConfig.quality.preset
         
         guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
             print("\(cameraConfig.cameraPosition) camera unavailable")
@@ -156,27 +239,9 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         
         do {
             let input = try AVCaptureDeviceInput(device: camera)
-            
-            if session.canAddInput(input) {
-                session.addInput(input)
-            } else {
-                print("could not add input to camera session")
-                return
-            }
-            
-            if session.canAddOutput(output) {
-                session.addOutput(output)
-            } else {
-                print("could not add output to camera session")
-                return
-            }
-            
-            if session.canAddOutput(videoOutput) {
-                session.addOutput(videoOutput)
-            } else {
-                print("could not add video output to camera session")
-                return
-            }
+            session.addInput(input)
+            session.addOutput(output)
+            session.addOutput(videoOutput)
         } catch {
             print("could not initialize camera for position: \(cameraConfig.cameraPosition)")
             return
@@ -214,6 +279,24 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         }
     }
     
+    func updateQuality() {
+        guard let session = self.session else {
+            print("Session not initialized")
+            return
+        }
+        
+        print(cameraConfig.quality.description)
+        
+        session.stopRunning()
+        session.beginConfiguration()
+        session.sessionPreset = cameraConfig.quality.preset
+        session.commitConfiguration()
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.startRunning()
+        }
+    }
+    
     func switchCamera() {
         guard let session = session else { return }
         
@@ -225,7 +308,7 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         cameraConfig.cameraPosition = (cameraConfig.cameraPosition == .front) ? .back : .front
         
         guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
-            print("Could not find the camera for position: \(cameraConfig.cameraPosition)")
+            print("could not find the camera for position: \(cameraConfig.cameraPosition)")
             return
         }
         
@@ -236,11 +319,11 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
             if session.canAddInput(newInput) {
                 session.addInput(newInput)
             } else {
-                print("Could not add new input")
+                print("could not add new input")
                 return
             }
         } catch {
-            print("Error switching cameras: \(error)")
+            print("error switching cameras: \(error)")
             return
         }
     }
@@ -254,6 +337,15 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         }
         
         let photoSettings = AVCapturePhotoSettings()
+        
+        switch cameraConfig.flash {
+        case .auto:
+            photoSettings.flashMode = .auto
+        case .on:
+            photoSettings.flashMode = .on
+        case .off:
+            photoSettings.flashMode = .off
+        }
         
         switch cameraConfig.cameraMode {
         case .photo:
@@ -281,6 +373,28 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         let dateString = dateFormatter.string(from: Date())
         let outputPath = NSTemporaryDirectory() + dateString + ".mov"
         let outputFileURL = URL(fileURLWithPath: outputPath)
+        
+        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
+            return
+        }
+        
+        do {
+            try camera.lockForConfiguration()
+            
+            switch cameraConfig.flash {
+            case .on:
+                if camera.isTorchAvailable {
+                    camera.torchMode = .on
+                }
+            case .off:
+                camera.torchMode = .off
+            case .auto:
+                camera.torchMode = .off
+            }
+            
+            camera.unlockForConfiguration()
+        } catch {
+        }
         
         switch cameraConfig.cameraMode {
         case .video:
@@ -343,7 +457,7 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         
         print("zooming!!")
         
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
+        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
             print("pinch recognizer could not access camera")
             return
         }
@@ -352,29 +466,82 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
             let pinchVelocityDividerFactor: CGFloat = 1.0
             
             do {
-                try device.lockForConfiguration()
-                defer { device.unlockForConfiguration() }
+                try camera.lockForConfiguration()
+                defer { camera.unlockForConfiguration() }
                 
-                let newScaleFactor = device.videoZoomFactor + atan2(sender.velocity, pinchVelocityDividerFactor)
-                device.videoZoomFactor = max(min(newScaleFactor, device.maxAvailableVideoZoomFactor), device.minAvailableVideoZoomFactor)
-                cameraConfig.zoom = device.videoZoomFactor
+                let newScaleFactor = camera.videoZoomFactor + atan2(sender.velocity, pinchVelocityDividerFactor)
+                camera.videoZoomFactor = max(min(newScaleFactor, camera.maxAvailableVideoZoomFactor), camera.minAvailableVideoZoomFactor)
+                cameraConfig.zoom = camera.videoZoomFactor
                 
             } catch {
-                print("could not lock device for config")
+                print("could not lock camera for config")
             }
         }
     }
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    @IBAction func tapFocusRecognizer(_ sender: UITapGestureRecognizer) {
+        let location = sender.location(in: cameraView)
+        let focusPoint = previewLayer.captureDevicePointConverted(fromLayerPoint: location)
+        
+        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
+            print("tap recognizer could not access camera")
+            return
+        }
+        
+        focusIndicator.center = location
+        focusIndicator.transform = CGAffineTransform(scaleX: 1.5, y: 1.5)
+        UIView.animateKeyframes(withDuration: 1, delay: 0, options: [], animations: {
+            UIView.addKeyframe(withRelativeStartTime: 0, relativeDuration: 0.05) {
+                self.focusIndicator.alpha = 1
+                self.focusIndicator.transform = CGAffineTransform.identity
+            }
+            
+            for i in 0...2 {
+                let startTime = Double(i) * 1.0 / 3.0
+                
+                UIView.addKeyframe(withRelativeStartTime: startTime, relativeDuration: 1.0 / 6.0) {
+                    self.focusIndicator.alpha = 0.5
+                }
+                
+                UIView.addKeyframe(withRelativeStartTime: startTime + 1.0 / 6.0, relativeDuration: 1.0 / 6.0) {
+                    self.focusIndicator.alpha = 1
+                }
+            }
+            
+            UIView.addKeyframe(withRelativeStartTime: 5.0 / 6.0, relativeDuration: 1.0 / 6.0) {
+                self.focusIndicator.alpha = 0
+            }
+        })
+        
+        do {
+            try camera.lockForConfiguration()
+            
+            if camera.isFocusPointOfInterestSupported && camera.isFocusModeSupported(.autoFocus) {
+                camera.focusPointOfInterest = focusPoint
+                if camera.isFocusModeSupported(.continuousAutoFocus) {
+                    camera.focusMode = .continuousAutoFocus
+                }
+                else {
+                    camera.focusMode = .autoFocus
+                }
+            }
+            
+            if camera.isExposurePointOfInterestSupported && camera.isExposureModeSupported(.autoExpose) {
+                camera.exposurePointOfInterest = focusPoint
+                
+                if camera.isExposureModeSupported(.continuousAutoExposure) {
+                    camera.exposureMode = .continuousAutoExposure
+                }
+                else {
+                    camera.exposureMode = .autoExpose
+                }
+            }
+            
+            camera.unlockForConfiguration()
+        } catch {
+            print("could not lock camera for config")
+        }
+    }
     
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         guard let imageData = photo.fileDataRepresentation(),
@@ -401,6 +568,15 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     }
     
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
+        if let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition), camera.isTorchActive {
+            do {
+                try camera.lockForConfiguration()
+                camera.torchMode = .off
+                camera.unlockForConfiguration()
+            } catch {
+            }
+        }
+        
         if let error = error {
             print("video recording error: \(error.localizedDescription)")
         } else {
@@ -417,8 +593,11 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         }
     }
     
-    
     func cropImage(image: UIImage) -> UIImage {
+        if cameraConfig.aspectRatio == .full {
+            return image
+        }
+        
         let size = image.size
         let targetSize = cameraConfig.aspectRatio.size
         let widthRatio = targetSize.width / size.width
@@ -440,7 +619,91 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         
         return newImage ?? image
     }
-    
 }
 
 
+
+class AspectRatioPickerDataSourceDelegate: NSObject, UIPickerViewDataSource, UIPickerViewDelegate {
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return CameraConfig.AspectRatio.allCases.count
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        return CameraConfig.AspectRatio.allCases[row].description
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString? {
+        let title = self.pickerView(pickerView, titleForRow: row, forComponent: component) ?? ""
+        let isSelected = row == pickerView.selectedRow(inComponent: component)
+        let titleColor = isSelected ? UIColor.systemYellow : UIColor.white
+        return NSAttributedString(string: title, attributes: [NSAttributedString.Key.foregroundColor: titleColor, NSAttributedString.Key.font: UIFont.systemFont(ofSize: 14)])
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        pickerView.reloadAllComponents()
+        let selectedAspectRatio = CameraConfig.AspectRatio.allCases[row]
+        cameraConfig.aspectRatio = selectedAspectRatio
+    }
+}
+
+class QualityPickerDataSourceDelegate: NSObject, UIPickerViewDataSource, UIPickerViewDelegate {
+    var onQualityChange: ((CameraConfig.Quality) -> Void)?
+    
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return CameraConfig.Quality.allCases.count
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        return CameraConfig.Quality.allCases[row].description
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString? {
+        let title = self.pickerView(pickerView, titleForRow: row, forComponent: component) ?? ""
+        let isSelected = row == pickerView.selectedRow(inComponent: component)
+        let titleColor = isSelected ? UIColor.systemYellow : UIColor.white
+        return NSAttributedString(string: title, attributes: [NSAttributedString.Key.foregroundColor: titleColor, NSAttributedString.Key.font: UIFont.systemFont(ofSize: 14)])
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        pickerView.reloadAllComponents()
+        let selectedQuality = CameraConfig.Quality.allCases[row]
+        cameraConfig.quality = selectedQuality
+        print(cameraConfig.quality.description)
+        onQualityChange?(selectedQuality)
+    }
+}
+
+class FlashPickerDataSourceDelegate: NSObject, UIPickerViewDataSource, UIPickerViewDelegate {
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return CameraConfig.Flash.allCases.count
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        return CameraConfig.Flash.allCases[row].description
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString? {
+        let title = self.pickerView(pickerView, titleForRow: row, forComponent: component) ?? ""
+        let isSelected = row == pickerView.selectedRow(inComponent: component)
+        let titleColor = isSelected ? UIColor.systemYellow : UIColor.white
+        return NSAttributedString(string: title, attributes: [NSAttributedString.Key.foregroundColor: titleColor, NSAttributedString.Key.font: UIFont.systemFont(ofSize: 14)])
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        pickerView.reloadAllComponents()
+        let selectedFlash = CameraConfig.Flash.allCases[row]
+        cameraConfig.flash = selectedFlash
+    }
+}
