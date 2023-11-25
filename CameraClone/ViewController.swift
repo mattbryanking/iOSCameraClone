@@ -454,29 +454,28 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     }
     
     @IBAction func zoomPinchRecognizer(_ sender: UIPinchGestureRecognizer) {
-        
-        print("zooming!!")
-        
         guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
-            print("pinch recognizer could not access camera")
+            print("could not access camera")
             return
         }
         
         if sender.state == .changed {
-            let pinchVelocityDividerFactor: CGFloat = 1.0
-            
             do {
                 try camera.lockForConfiguration()
                 defer { camera.unlockForConfiguration() }
                 
-                let newScaleFactor = camera.videoZoomFactor + atan2(sender.velocity, pinchVelocityDividerFactor)
+                let pinchScaleFactor = sender.scale
+                let newScaleFactor = camera.videoZoomFactor * pinchScaleFactor
+                
                 camera.videoZoomFactor = max(min(newScaleFactor, camera.maxAvailableVideoZoomFactor), camera.minAvailableVideoZoomFactor)
                 cameraConfig.zoom = camera.videoZoomFactor
                 
+                sender.scale = 1.0
             } catch {
                 print("could not lock camera for config")
             }
         }
+        
     }
     
     @IBAction func tapFocusRecognizer(_ sender: UITapGestureRecognizer) {
