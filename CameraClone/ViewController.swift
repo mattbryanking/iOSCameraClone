@@ -1,4 +1,5 @@
 import AVFoundation
+import Photos
 import UIKit
 
 struct CameraConfig {
@@ -110,14 +111,18 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     var previewLayer = AVCaptureVideoPreviewLayer()
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     var burstModeTimer: Timer?
+    var videoTimer: Timer?
+    var videoTimerSeconds = 0
     let focusIndicator = UIImageView()
     
     @IBOutlet weak var aspectRatioPickerView: UIPickerView!
     @IBOutlet weak var qualityPickerView: UIPickerView!
     @IBOutlet weak var flashPickerView: UIPickerView!
+    @IBOutlet weak var videoTimerLabel: UILabel!
     @IBOutlet weak var CameraModeScroller: UIScrollView!
     @IBOutlet weak var cameraModeStackView: UIStackView!
     @IBOutlet weak var rotateCameraButton: UIButton!
+    @IBOutlet weak var photosButton: UIButton!
     @IBOutlet weak var shutterButton: UIButton!
     @IBOutlet weak var shutterRing: UIButton!
     @IBOutlet weak var cameraView: UIView!
@@ -134,9 +139,11 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         session = AVCaptureSession()
         
         setupCamera()
+        setupVideoTimerLabel()
         setupCameraModeScroller()
         setupShutterButton()
         setupRotateCameraButton()
+        setupPhotosButton()
         setupFocusIndicator()
         setupAspectRatioPickerView()
         setupQualityPickerView()
@@ -154,6 +161,15 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         CameraModeScroller.setContentOffset(CGPoint(x: CameraModeScroller.contentSize.width / 2 - CameraModeScroller.bounds.size.width / 2, y: 0), animated: false)
+        aspectRatioPickerView.subviews.last?.isHidden = true
+        flashPickerView.subviews.last?.isHidden = true
+        qualityPickerView.subviews.last?.isHidden = true
+    }
+    
+    func setupVideoTimerLabel() {
+        videoTimerLabel.alpha = 0
+        videoTimerLabel.layer.cornerRadius = 5
+        videoTimerLabel.clipsToBounds = true
     }
     
     func setupCameraModeScroller() {
@@ -174,7 +190,8 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
                 button.setTitleColor(.systemYellow, for: .normal)
             }
             button.contentHorizontalAlignment = .center
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+            button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 14)
+            
             // add button tap action
             button.addTarget(self, action: #selector(cameraModeButtonUp(_:)), for: .touchUpInside)
             cameraModeStackView.addArrangedSubview(button)
@@ -195,6 +212,47 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         rotateCameraButton.layer.cornerRadius = rotateCameraButton.frame.width / 2
         rotateCameraButton.layer.masksToBounds = true
     }
+    
+    func setupPhotosButton() {
+        self.photosButton.imageView?.contentMode = .scaleAspectFill
+        self.photosButton.imageView?.clipsToBounds = true
+        
+        let fetchOptions = PHFetchOptions()
+        fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        let fetchResult = PHAsset.fetchAssets(with: fetchOptions)
+        
+        // if last camera roll file is video, grab thumbnail
+        if let asset = fetchResult.firstObject {
+            if asset.mediaType == .video {
+                PHImageManager.default().requestAVAsset(forVideo: asset, options: nil) { avAsset, _, _ in
+                    guard let avAsset = avAsset else { return }
+                    
+                    avAsset.loadTracks(withMediaType: AVMediaType.video) { tracks, _ in
+                        DispatchQueue.main.async {
+                            if let _ = tracks?.first {
+                                let imageGenerator = AVAssetImageGenerator(asset: avAsset)
+                                imageGenerator.appliesPreferredTrackTransform = true
+                                let time = CMTime(seconds: 0.0, preferredTimescale: 600)
+                                do {
+                                    let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
+                                    let image = UIImage(cgImage: cgImage)
+                                    self.photosButton.setImage(image, for: .normal)
+                                } catch {
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if asset.mediaType == .image {
+                PHImageManager.default().requestImage(for: asset, targetSize: CGSize(width: 55, height: 55), contentMode: .aspectFit, options: nil) { image, _ in
+                    DispatchQueue.main.async {
+                        self.photosButton.setImage(image, for: .normal)
+                    }
+                }
+            }
+        }
+    }
+    
     
     func setupFocusIndicator() {
         focusIndicator.image = UIImage(named: "FocusIcon")
@@ -265,10 +323,14 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     func updateUI() {
         // change shutter button to red for video or white for camera
         if cameraConfig.cameraMode == .photo || cameraConfig.cameraMode == .burst {
-            shutterButton.backgroundColor = UIColor.white
+            UIView.animate(withDuration: 0.2) {
+                self.shutterButton.backgroundColor = UIColor.white
+            }
         }
         else {
-            shutterButton.backgroundColor = UIColor.red
+            UIView.animate(withDuration: 0.3) {
+                self.shutterButton.backgroundColor = UIColor(red: 0.99, green: 0.27, blue: 0.27, alpha: 1.00)
+            }
         }
         
         // change camera mode buttons to reflect selected
@@ -281,19 +343,58 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     
     func updateQuality() {
         guard let session = self.session else {
-            print("Session not initialized")
+            print("session not initialized")
             return
         }
         
-        print(cameraConfig.quality.description)
-        
         session.stopRunning()
         session.beginConfiguration()
-        session.sessionPreset = cameraConfig.quality.preset
+        
+        if cameraConfig.cameraMode == .slomo {
+            guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
+                print("camera not available")
+                return
+            }
+            configureForSlomo(device: camera)
+        } else {
+            session.sessionPreset = cameraConfig.quality.preset
+        }
+        
         session.commitConfiguration()
         
         DispatchQueue.global(qos: .userInitiated).async {
             session.startRunning()
+        }
+    }
+    
+    func configureForSlomo(device: AVCaptureDevice) {
+        
+        var bestFormat: AVCaptureDevice.Format?
+        var bestFrameRateRange: AVFrameRateRange?
+        
+        for format in device.formats {
+            for range in format.videoSupportedFrameRateRanges {
+                if range.maxFrameRate > bestFrameRateRange?.maxFrameRate ?? 0 {
+                    bestFormat = format
+                    bestFrameRateRange = range
+                }
+            }
+        }
+        
+        if let bestFormat = bestFormat,
+           let bestFrameRateRange = bestFrameRateRange {
+            do {
+                try device.lockForConfiguration()
+                
+                device.activeFormat = bestFormat
+                
+                let duration = bestFrameRateRange.minFrameDuration
+                device.activeVideoMinFrameDuration = duration
+                device.activeVideoMaxFrameDuration = duration
+                
+                device.unlockForConfiguration()
+            } catch {
+            }
         }
     }
     
@@ -336,16 +437,28 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
             return
         }
         
+        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
+            return
+        }
+        
         let photoSettings = AVCapturePhotoSettings()
         
-        switch cameraConfig.flash {
-        case .auto:
-            photoSettings.flashMode = .auto
-        case .on:
-            photoSettings.flashMode = .on
-        case .off:
-            photoSettings.flashMode = .off
-        }
+        let supportedFlashModes = output.supportedFlashModes
+
+         switch cameraConfig.flash {
+         case .auto:
+             if supportedFlashModes.contains(.auto) {
+                 photoSettings.flashMode = .auto
+             }
+         case .on:
+             if supportedFlashModes.contains(.on) {
+                 photoSettings.flashMode = .on
+             }
+         case .off:
+             if supportedFlashModes.contains(.off) {
+                 photoSettings.flashMode = .off
+             }
+         }
         
         switch cameraConfig.cameraMode {
         case .photo:
@@ -362,12 +475,7 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         }
     }
     
-    // master function to dertermine video method/settings
     func takeVideo() {
-        
-        // since videos are larger, their files need to be managed directly here.
-        // we store them in temp memory, and specify an output path. photos
-        // don't need this step as they're automatically handled in memory
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyyMMddHHmmss"
         let dateString = dateFormatter.string(from: Date())
@@ -383,32 +491,26 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
             
             switch cameraConfig.flash {
             case .on:
-                if camera.isTorchAvailable {
+                if camera.isTorchAvailable && camera.isTorchModeSupported(.on) {
                     camera.torchMode = .on
                 }
             case .off:
-                camera.torchMode = .off
+                if camera.isTorchModeSupported(.off) {
+                    camera.torchMode = .off
+                }
             case .auto:
-                camera.torchMode = .off
+                if camera.isTorchModeSupported(.off) {
+                    camera.torchMode = .off
+                }
             }
             
             camera.unlockForConfiguration()
         } catch {
         }
-        
-        switch cameraConfig.cameraMode {
-        case .video:
-            videoOutput.startRecording(to: outputFileURL, recordingDelegate: self)
-        case .slomo:
-            break
-        case .timelapse:
-            break
-        default:
-            break
-        }
+        videoOutput.startRecording(to: outputFileURL, recordingDelegate: self)
     }
     
-    
+    // since this was created programatically, we can't use an IBAction
     @objc func cameraModeButtonUp(_ sender: UIButton) {
         guard let title = sender.title(for: .normal),
               let mode = CameraConfig.CameraMode.allCases.first(where: { $0.description == title }) else {
@@ -416,6 +518,8 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         }
         
         cameraConfig.cameraMode = mode
+        
+        updateQuality()
         updateUI()
     }
     
@@ -431,8 +535,27 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         } else {
             if videoOutput.isRecording {
                 videoOutput.stopRecording()
+                
+                videoTimer?.invalidate()
+                videoTimer = nil
+                UIView.animate(withDuration: 0.5) {
+                    self.videoTimerLabel.alpha = 0
+                }
             } else {
                 takeVideo()
+                
+                videoTimerLabel.alpha = 0
+                UIView.animate(withDuration: 0.5) {
+                    self.videoTimerLabel.alpha = 1.0
+                }
+                videoTimerSeconds = 0
+                videoTimerLabel.text = "00:00"
+                videoTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                    self?.videoTimerSeconds += 1
+                    let minutes = self!.videoTimerSeconds / 60
+                    let remainingSeconds = self!.videoTimerSeconds % 60
+                    self!.videoTimerLabel.text = String(format: "%02d:%02d", minutes, remainingSeconds)
+                }
             }
         }
     }
@@ -453,6 +576,10 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         switchCamera()
     }
     
+    @IBAction func photosButtonUp(_ sender: UIButton) {
+        UIApplication.shared.open(URL(string:"photos-redirect://")!)
+    }
+    
     @IBAction func zoomPinchRecognizer(_ sender: UIPinchGestureRecognizer) {
         guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: cameraConfig.cameraPosition) else {
             print("could not access camera")
@@ -464,8 +591,8 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
                 try camera.lockForConfiguration()
                 defer { camera.unlockForConfiguration() }
                 
-                let pinchScaleFactor = sender.scale
-                let newScaleFactor = camera.videoZoomFactor * pinchScaleFactor
+                let scaleFactor = sender.scale
+                let newScaleFactor = camera.videoZoomFactor * scaleFactor
                 
                 camera.videoZoomFactor = max(min(newScaleFactor, camera.maxAvailableVideoZoomFactor), camera.minAvailableVideoZoomFactor)
                 cameraConfig.zoom = camera.videoZoomFactor
@@ -514,7 +641,7 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         
         do {
             try camera.lockForConfiguration()
-            
+            print("locked!")
             if camera.isFocusPointOfInterestSupported && camera.isFocusModeSupported(.autoFocus) {
                 camera.focusPointOfInterest = focusPoint
                 if camera.isFocusModeSupported(.continuousAutoFocus) {
@@ -579,10 +706,131 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
         if let error = error {
             print("video recording error: \(error.localizedDescription)")
         } else {
-            print("video recording finished, saved at: \(outputFileURL.path)")
-            UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(video(_:didFinishSavingWithError:contextInfo:)), nil)
+            if cameraConfig.cameraMode == .slomo {
+                Task {
+                    await exportSloMo(originalVideoURL: outputFileURL)
+                }
+            }
+            else if cameraConfig.cameraMode == .timelapse {
+                Task {
+                    await exportTimelapse(originalVideoURL: outputFileURL)
+                }
+            }
+            else {
+                UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, self, #selector(video(_:didFinishSavingWithError:contextInfo:)), nil)
+            }
         }
     }
+    
+    func exportSloMo(originalVideoURL: URL) async {
+        
+        let asset = AVURLAsset(url: originalVideoURL)
+        let sloMoComposition = AVMutableComposition()
+        
+        do {
+            guard let srcVideoTrack = try await asset.loadTracks(withMediaType: .video).first else { return }
+            let sloMoVideoTrack = sloMoComposition.addMutableTrack(withMediaType: .video,
+                                                                   preferredTrackID: kCMPersistentTrackID_Invalid)
+            do {
+                let preferredTransform = try await srcVideoTrack.load(.preferredTransform)
+                sloMoVideoTrack?.preferredTransform = preferredTransform
+                try await sloMoVideoTrack?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset.load(.duration)),
+                                                           of: srcVideoTrack,
+                                                           at: .zero)
+            } catch {
+                print("error inserting time range")
+                return
+            }
+            
+            let newDuration = try await CMTimeMultiplyByFloat64( asset.load(.duration), multiplier: 2)
+            try await sloMoVideoTrack?.scaleTimeRange(CMTimeRangeMake(start: .zero, duration: asset.load(.duration)), toDuration: newDuration)
+            
+            guard let exportSession = AVAssetExportSession(asset: sloMoComposition, presetName: AVAssetExportPresetPassthrough) else {
+                print("could not create export session.")
+                return
+            }
+            
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyyMMddHHmmss"
+            let dateString = dateFormatter.string(from: Date())
+            let outputPath = NSTemporaryDirectory() + dateString + "slowmo.mov"
+            let outputFileURL = URL(fileURLWithPath: outputPath)
+            exportSession.outputURL = outputFileURL
+            exportSession.outputFileType = .mov
+            
+            exportSession.exportAsynchronously {
+                DispatchQueue.main.async {
+                    switch exportSession.status {
+                    case .completed:
+                        UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, nil, nil, nil)
+                        print("slomo recording finished, saved at: \(outputFileURL.path)")
+                    case .failed:
+                        print("export failed")
+                    default:
+                        break
+                    }
+                }
+            }
+        } catch {
+            print("an error occurred")
+        }
+    }
+    
+    
+    func exportTimelapse(originalVideoURL: URL) async {
+        
+        let asset = AVURLAsset(url: originalVideoURL)
+        let timelapseComposition = AVMutableComposition()
+        
+        do {
+            guard let srcVideoTrack = try await asset.loadTracks(withMediaType: .video).first else { return }
+            let timelapseVideoTrack = timelapseComposition.addMutableTrack(withMediaType: .video,
+                                                                           preferredTrackID: kCMPersistentTrackID_Invalid)
+            do {
+                let preferredTransform = try await srcVideoTrack.load(.preferredTransform)
+                timelapseVideoTrack?.preferredTransform = preferredTransform
+                try await timelapseVideoTrack?.insertTimeRange(CMTimeRangeMake(start: .zero, duration: asset.load(.duration)),
+                                                               of: srcVideoTrack,
+                                                               at: .zero)
+            } catch {
+                print("error inserting time range")
+                return
+            }
+            
+            let newDuration = try await CMTimeMultiplyByFloat64(asset.load(.duration), multiplier: 1 / 20)
+            try await timelapseVideoTrack?.scaleTimeRange(CMTimeRangeMake(start: .zero, duration: asset.load(.duration)), toDuration: newDuration)
+            
+            guard let exportSession = AVAssetExportSession(asset: timelapseComposition, presetName: AVAssetExportPresetPassthrough) else {
+                print("could not create export session.")
+                return
+            }
+            
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyyMMddHHmmss"
+            let dateString = dateFormatter.string(from: Date())
+            let outputPath = NSTemporaryDirectory() + dateString + "timelapse.mov"
+            let outputFileURL = URL(fileURLWithPath: outputPath)
+            exportSession.outputURL = outputFileURL
+            exportSession.outputFileType = .mov
+            
+            exportSession.exportAsynchronously {
+                DispatchQueue.main.async {
+                    switch exportSession.status {
+                    case .completed:
+                        UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, nil, nil, nil)
+                        print("timelapse recording finished, saved at: \(outputFileURL.path)")
+                    case .failed:
+                        print("export failed")
+                    default:
+                        break
+                    }
+                }
+            }
+        } catch {
+            print("an error occurred")
+        }
+    }
+    
     
     @objc func video(_ videoPath: String, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
         if let error = error {
@@ -675,7 +923,6 @@ class QualityPickerDataSourceDelegate: NSObject, UIPickerViewDataSource, UIPicke
         pickerView.reloadAllComponents()
         let selectedQuality = CameraConfig.Quality.allCases[row]
         cameraConfig.quality = selectedQuality
-        print(cameraConfig.quality.description)
         onQualityChange?(selectedQuality)
     }
 }

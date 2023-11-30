@@ -26,6 +26,17 @@
                                     <outletCollection property="gestureRecognizers" destination="YlU-cv-esD" appends="YES" id="Q6H-w3-ssZ"/>
                                 </connections>
                             </view>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="44C-W5-ZcJ" userLabel="Video Timer">
+                                <rect key="frame" x="175" y="662" width="80" height="30"/>
+                                <color key="backgroundColor" red="1" green="0.23137254900000001" blue="0.18823529410000001" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="30" id="RfQ-pq-Tsm"/>
+                                    <constraint firstAttribute="width" constant="80" id="mi3-Wc-QBT"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Unj-oI-FvN" userLabel="Bottom Container">
                                 <rect key="frame" x="0.0" y="708" width="430" height="224"/>
                                 <subviews>
@@ -36,7 +47,7 @@
                                     <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wMh-CC-TW3">
                                         <rect key="frame" x="0.0" y="8" width="430" height="50"/>
                                         <subviews>
-                                            <stackView opaque="NO" contentMode="scaleToFill" ambiguous="YES" distribution="fillEqually" alignment="center" spacing="25" translatesAutoresizingMaskIntoConstraints="NO" id="7Wg-Qe-XeO" userLabel="Camera Mode Stack View">
+                                            <stackView opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" ambiguous="YES" distribution="equalSpacing" alignment="center" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="7Wg-Qe-XeO" userLabel="Camera Mode Stack View">
                                                 <rect key="frame" x="115" y="0.0" width="200" height="50"/>
                                             </stackView>
                                         </subviews>
@@ -52,7 +63,7 @@
                                         <viewLayoutGuide key="frameLayoutGuide" id="pYJ-Y8-X2d"/>
                                     </scrollView>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="8Fj-9S-oRZ" userLabel="Rotate Camera Button">
-                                        <rect key="frame" x="335" y="89.666666666666629" width="45" height="45"/>
+                                        <rect key="frame" x="369" y="89.666666666666629" width="45" height="45"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="45" id="2Jq-Hj-cJr"/>
                                             <constraint firstAttribute="width" constant="45" id="uRs-1v-e3v"/>
@@ -64,6 +75,18 @@
                                         </buttonConfiguration>
                                         <connections>
                                             <action selector="rotateButtonUp:" destination="BYZ-38-t0r" eventType="touchUpInside" id="mep-fP-83V"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" clipsSubviews="YES" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="zfL-Om-IMX" userLabel="Photos Button">
+                                        <rect key="frame" x="16" y="87" width="50" height="50"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="50" id="JPr-TE-ecr"/>
+                                            <constraint firstAttribute="width" constant="50" id="x7q-hT-r4Q"/>
+                                        </constraints>
+                                        <state key="normal" title="Button"/>
+                                        <buttonConfiguration key="configuration" style="plain"/>
+                                        <connections>
+                                            <action selector="photosButtonUp:" destination="BYZ-38-t0r" eventType="touchUpInside" id="aG1-YS-EQm"/>
                                         </connections>
                                     </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="NnL-dn-HQ2" userLabel="Shutter Ring">
@@ -92,17 +115,20 @@
                                 </subviews>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <constraints>
+                                    <constraint firstItem="zfL-Om-IMX" firstAttribute="centerY" secondItem="Unj-oI-FvN" secondAttribute="centerY" id="0xO-Bp-jXW"/>
                                     <constraint firstItem="8Fj-9S-oRZ" firstAttribute="centerY" secondItem="Unj-oI-FvN" secondAttribute="centerY" id="DXg-5S-7uf"/>
                                     <constraint firstItem="pvL-64-kB7" firstAttribute="top" secondItem="Unj-oI-FvN" secondAttribute="top" id="Dql-Su-hl1"/>
                                     <constraint firstItem="ZOD-VX-f8n" firstAttribute="centerX" secondItem="Unj-oI-FvN" secondAttribute="centerX" id="F9T-Vd-SSZ"/>
                                     <constraint firstItem="NnL-dn-HQ2" firstAttribute="centerY" secondItem="Unj-oI-FvN" secondAttribute="centerY" id="Hpg-1R-Z1e"/>
-                                    <constraint firstAttribute="trailing" secondItem="8Fj-9S-oRZ" secondAttribute="trailing" constant="50" id="KHp-qc-ocj"/>
+                                    <constraint firstAttribute="trailing" secondItem="8Fj-9S-oRZ" secondAttribute="trailing" constant="16" id="KHp-qc-ocj"/>
                                     <constraint firstItem="NnL-dn-HQ2" firstAttribute="centerX" secondItem="Unj-oI-FvN" secondAttribute="centerX" id="LLb-gY-5fQ"/>
                                     <constraint firstItem="ZOD-VX-f8n" firstAttribute="centerY" secondItem="Unj-oI-FvN" secondAttribute="centerY" id="Ox9-ow-RIW"/>
                                     <constraint firstItem="pvL-64-kB7" firstAttribute="leading" secondItem="Unj-oI-FvN" secondAttribute="leading" id="SBv-Vd-1Dn"/>
                                     <constraint firstItem="wMh-CC-TW3" firstAttribute="top" secondItem="Unj-oI-FvN" secondAttribute="topMargin" id="gRd-hy-IQT"/>
                                     <constraint firstAttribute="trailing" secondItem="pvL-64-kB7" secondAttribute="trailing" id="ht7-o0-1YH"/>
+                                    <constraint firstItem="wMh-CC-TW3" firstAttribute="centerX" secondItem="Unj-oI-FvN" secondAttribute="centerX" id="lCh-ii-kjY"/>
                                     <constraint firstAttribute="width" secondItem="Unj-oI-FvN" secondAttribute="height" multiplier="215:112" id="mtu-BM-VU1"/>
+                                    <constraint firstItem="zfL-Om-IMX" firstAttribute="leading" secondItem="Unj-oI-FvN" secondAttribute="leading" constant="16" id="nBW-eq-o3O"/>
                                     <constraint firstAttribute="trailingMargin" secondItem="wMh-CC-TW3" secondAttribute="trailing" id="nRh-8r-yB3"/>
                                     <constraint firstItem="wMh-CC-TW3" firstAttribute="leading" secondItem="Unj-oI-FvN" secondAttribute="leadingMargin" id="swg-dZ-HWr"/>
                                     <constraint firstAttribute="bottom" secondItem="pvL-64-kB7" secondAttribute="bottom" id="uIQ-dY-GFZ"/>
@@ -170,6 +196,7 @@
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <gestureRecognizers/>
                         <constraints>
+                            <constraint firstItem="44C-W5-ZcJ" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="6Fk-J3-oq0"/>
                             <constraint firstAttribute="bottom" secondItem="Unj-oI-FvN" secondAttribute="bottom" id="6VY-Jx-Sqi"/>
                             <constraint firstItem="SDy-gN-gav" firstAttribute="leading" secondItem="g0P-h1-zzi" secondAttribute="leading" id="8SZ-14-qSc"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="8vq-yh-ny0"/>
@@ -180,6 +207,7 @@
                             <constraint firstItem="SDy-gN-gav" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="tMt-GX-SqT"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="leading" secondItem="g0P-h1-zzi" secondAttribute="leading" id="w1U-8K-PF2"/>
                             <constraint firstAttribute="bottom" secondItem="2Ah-jv-asZ" secondAttribute="bottom" id="xJL-9Z-fqd"/>
+                            <constraint firstItem="Unj-oI-FvN" firstAttribute="top" secondItem="44C-W5-ZcJ" secondAttribute="bottom" constant="16" id="xMd-KT-OYR"/>
                         </constraints>
                     </view>
                     <connections>
@@ -188,10 +216,12 @@
                         <outlet property="cameraModeStackView" destination="7Wg-Qe-XeO" id="qUg-63-enI"/>
                         <outlet property="cameraView" destination="2Ah-jv-asZ" id="qAh-6L-LF2"/>
                         <outlet property="flashPickerView" destination="Xzb-Aw-VqH" id="WmI-7R-HEl"/>
+                        <outlet property="photosButton" destination="zfL-Om-IMX" id="Eqd-RU-wY6"/>
                         <outlet property="qualityPickerView" destination="XmW-WZ-YmE" id="gfi-QK-8CT"/>
                         <outlet property="rotateCameraButton" destination="8Fj-9S-oRZ" id="ZZw-fl-Osg"/>
                         <outlet property="shutterButton" destination="ZOD-VX-f8n" id="PWa-ot-Er7"/>
                         <outlet property="shutterRing" destination="NnL-dn-HQ2" id="lJp-8i-GK7"/>
+                        <outlet property="videoTimerLabel" destination="44C-W5-ZcJ" id="xDg-cw-UUm"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
