@@ -26,6 +26,10 @@
                                     <outletCollection property="gestureRecognizers" destination="YlU-cv-esD" appends="YES" id="Q6H-w3-ssZ"/>
                                 </connections>
                             </view>
+                            <view userInteractionEnabled="NO" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oKL-Gz-2v5" userLabel="Fade View">
+                                <rect key="frame" x="0.0" y="0.0" width="430" height="932"/>
+                                <gestureRecognizers/>
+                            </view>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="44C-W5-ZcJ" userLabel="Video Timer">
                                 <rect key="frame" x="175" y="662" width="80" height="30"/>
                                 <color key="backgroundColor" red="1" green="0.23137254900000001" blue="0.18823529410000001" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -198,13 +202,17 @@
                         <constraints>
                             <constraint firstItem="44C-W5-ZcJ" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="6Fk-J3-oq0"/>
                             <constraint firstAttribute="bottom" secondItem="Unj-oI-FvN" secondAttribute="bottom" id="6VY-Jx-Sqi"/>
+                            <constraint firstAttribute="bottom" secondItem="oKL-Gz-2v5" secondAttribute="bottom" id="6We-13-wwy"/>
                             <constraint firstItem="SDy-gN-gav" firstAttribute="leading" secondItem="g0P-h1-zzi" secondAttribute="leading" id="8SZ-14-qSc"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="8vq-yh-ny0"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="trailing" secondItem="g0P-h1-zzi" secondAttribute="trailing" id="ESQ-WI-KPd"/>
+                            <constraint firstItem="oKL-Gz-2v5" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="XRL-F5-hYz"/>
                             <constraint firstAttribute="trailing" secondItem="Unj-oI-FvN" secondAttribute="trailing" id="a3y-JB-xnv"/>
+                            <constraint firstItem="oKL-Gz-2v5" firstAttribute="trailing" secondItem="g0P-h1-zzi" secondAttribute="trailing" id="ahl-uz-o3d"/>
                             <constraint firstItem="Unj-oI-FvN" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="lSy-Rw-Mmd"/>
                             <constraint firstItem="g0P-h1-zzi" firstAttribute="trailing" secondItem="SDy-gN-gav" secondAttribute="trailing" id="s8m-bK-bYV"/>
                             <constraint firstItem="SDy-gN-gav" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="tMt-GX-SqT"/>
+                            <constraint firstItem="oKL-Gz-2v5" firstAttribute="leading" secondItem="g0P-h1-zzi" secondAttribute="leading" id="uK6-Ft-4Ru"/>
                             <constraint firstItem="2Ah-jv-asZ" firstAttribute="leading" secondItem="g0P-h1-zzi" secondAttribute="leading" id="w1U-8K-PF2"/>
                             <constraint firstAttribute="bottom" secondItem="2Ah-jv-asZ" secondAttribute="bottom" id="xJL-9Z-fqd"/>
                             <constraint firstItem="Unj-oI-FvN" firstAttribute="top" secondItem="44C-W5-ZcJ" secondAttribute="bottom" constant="16" id="xMd-KT-OYR"/>
@@ -215,6 +223,7 @@
                         <outlet property="aspectRatioPickerView" destination="0Zo-BV-7vD" id="JpG-MG-id2"/>
                         <outlet property="cameraModeStackView" destination="7Wg-Qe-XeO" id="qUg-63-enI"/>
                         <outlet property="cameraView" destination="2Ah-jv-asZ" id="qAh-6L-LF2"/>
+                        <outlet property="fadeView" destination="oKL-Gz-2v5" id="gwJ-kt-5zw"/>
                         <outlet property="flashPickerView" destination="Xzb-Aw-VqH" id="WmI-7R-HEl"/>
                         <outlet property="photosButton" destination="zfL-Om-IMX" id="Eqd-RU-wY6"/>
                         <outlet property="qualityPickerView" destination="XmW-WZ-YmE" id="gfi-QK-8CT"/>
