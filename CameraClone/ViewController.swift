@@ -580,14 +580,6 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     
     // master function for saving photo method/settings
     func takePhoto() {
-        UIView.animate(withDuration: 0.1, animations: {
-            self.fadeView.backgroundColor = UIColor.black
-        }) { (finished) in
-            UIView.animate(withDuration: 0.1, animations: {
-                self.fadeView.backgroundColor = UIColor.clear
-            })
-        }
-        
         // check if session is running and available to take photo
         guard let session = session, session.isRunning else {
             print("could not access session")
@@ -630,14 +622,6 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
                 self?.feedbackGenerator.impactOccurred()
                 let photoSettings = AVCapturePhotoSettings()
                 timer.output.capturePhoto(with: photoSettings, delegate: timer)
-                
-                UIView.animate(withDuration: 0.1, animations: {
-                    self?.fadeView.backgroundColor = UIColor.black
-                }) { (finished) in
-                    UIView.animate(withDuration: 0.1, animations: {
-                        self?.fadeView.backgroundColor = UIColor.clear
-                    })
-                }
             }
         default:
             break
@@ -894,6 +878,14 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     
     // triggered when photo is captured
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        UIView.animate(withDuration: 0.1, animations: {
+            self.fadeView.backgroundColor = UIColor.black
+        }) { (finished) in
+            UIView.animate(withDuration: 0.1, animations: {
+                self.fadeView.backgroundColor = UIColor.clear
+            })
+        }
+        
         // convert photo to UIImage and check for errors
         guard let imageData = photo.fileDataRepresentation(),
               var image = UIImage(data: imageData) else {
