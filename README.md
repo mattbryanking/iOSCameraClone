@@ -1,3 +1,5 @@
+# iOS 17 Camera Clone App
+
 A native, stripped down version of the iOS 17 camera app built with Swift and XCode, built to explore AVFoundation.
 
 While the original Apple Camera app integrates advanced features like AI image manipulation and Metal graphics rendering, my focus is on creating a simple yet functional user interface that mirrors the style of the iPhone Camera app. 
