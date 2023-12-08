@@ -341,7 +341,7 @@ class ViewController: UIViewController, AVCapturePhotoCaptureDelegate, AVCapture
     
     // create tap to focus indicator
     func setupFocusIndicator() {
-        focusIndicator.image = UIImage(named: "FocusIcon")
+        focusIndicator.image = UIImage(named: "focusicon")
         focusIndicator.contentMode = .scaleAspectFit
         focusIndicator.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
         focusIndicator.alpha = 0
